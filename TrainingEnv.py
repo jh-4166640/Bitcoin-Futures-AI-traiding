@@ -30,6 +30,7 @@ class TrainingEnv():
         self.gamma = gamma
         self.epsilon = epsilon
         self.current_step = 0
+        print(f"alpha {self.alpha},,, gamma {self.gamma},,, epsilon {self.epsilon}")
     def getHyperParam(self):
         return self.alpha, self.gamma, self.epsilon
     def get_q_value(self, state, action):  
@@ -150,8 +151,11 @@ if __name__ == "__main__":
     max_total = 0
     epoch = 0
     print("Stored data")
+    trade = TrainingEnv(csv_data)
     while True:
         print(f"epoch({epoch})")
+        trade.setHyperParam(random.uniform(0,0.5),random.uniform(0.89,0.99),random.uniform(0,0.5))
+        
         if epoch > 1000:
             break
         total_reward  = 0
@@ -167,5 +171,4 @@ if __name__ == "__main__":
             max_alpha, max_gamma, max_epsilon = trade.getHyperParam()
             print(f"max total : {max_total},,, max alpha : {max_alpha},,, max gamma : {max_gamma},,, max epsilon : {max_epsilon}")
         total_reward = 0
-        trade.setHyperParam(random.randrange(0,1),random.randrange(0,1),random.randrange(0,1))
         epoch+=1

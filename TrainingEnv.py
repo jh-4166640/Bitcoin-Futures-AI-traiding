@@ -2,10 +2,12 @@ import numpy as np
 import pandas as pd
 import random
 import sys
+import time
+
 
 
 class TrainingEnv():
-    def __init__(self, data, inital_balance=100, fee_rate=0.001, position_rate = 0.4):
+    def __init__(self, data, inital_balance=1000, fee_rate=0.001, position_rate = 0.4):
         # data road
         self.data = data
         self.current_step = 0 # model have step on Environment
@@ -91,15 +93,21 @@ class TrainingEnv():
                 # 현재 자산 - (현재 자산*포지션 진입 비율) - 거래수수료
                 self.position = trade_cost/current_price # 비트코인 long 수량
                 self.balance -= (trade_cost + trade_fee)
+                self.entry_price = current_price
                 self.trades.append((self.current_step, current_price ,'LONG'))            
                 
     def Exit_long(self, current_price):
         if self.position > 0:
+            entry_value = self.entry_price*abs(self.position)
             trade_value = self.position * current_price
+            trade_profit = (trade_value - entry_value)
             # 수수료 계산
             trade_cost = trade_value * self.fee_rate
             self.balance += (trade_value - trade_cost)
             self.position = 0
+            self.entry_price = 0
+            #print(f"Long Exit trade profit {trade_profit - trade_cost}")
+            
             self.trades.append((self.current_step, current_price,'EXIT LONG'))
             
     def Enter_short(self, current_price):
@@ -124,6 +132,8 @@ class TrainingEnv():
             # 수수료 계산
             trade_cost = trade_value * self.fee_rate
             self.balance += (trade_profit - trade_cost)
+            #print(f"Short Exit trade profit {trade_profit - entry_value}")
+            
             self.position = 0
             self.entry_price = 0
             self.trades.append((self.current_step, current_price,'EXIT SHORT'))
@@ -150,7 +160,7 @@ class TrainingEnv():
             
         # 수익 = 진입가격*수량 + (진입가 - 현재가) .... 
         if self.position < 0:
-            profit = (self.position*self.entry_price) + (self.position*self.entry_price - self.position*current_price)
+            profit = (abs(self.position)*self.entry_price) + (abs(self.position)*self.entry_price - abs(self.position)*current_price)
         elif self.position > 0:
             profit = self.position*current_price
         else:
@@ -159,6 +169,10 @@ class TrainingEnv():
         # 자산 업데이트
         self.net_worth = self.balance + profit
         self.net_worth_Log.append(self.net_worth)
+        #if (self.position != 0):
+            #print(f"position {self.position}, balance {self.balance}, profit {profit}, entry {self.entry_price}, current {current_price}")
+            #time.sleep(1)
+        
         # 보상 (자산) 증/감
         reward = self.net_worth - self.initial_balance
         #if abs(action) == 2:
@@ -168,8 +182,6 @@ class TrainingEnv():
         next_state = (next_price, self.position)
         self.update_q_value(state, action,reward, next_state)
         return reward
-    
-
     
 if __name__ == "__main__":
     try: 
@@ -200,11 +212,17 @@ if __name__ == "__main__":
         for episode in range(1590000): # 795*2000 , 395*2000
             reward = trade.step()
             total_reward += reward
+            if trade.net_worth < trade.initial_balance * 0.3:
+                print(f"under init 30%... {trade.net_worth}")
+                #time.sleep(10)
+                break
+            
         print(f"Episode {episode + 1} finished with total reward: {total_reward}")  
         trades_df = pd.DataFrame(trade.trades, columns=['Step', 'Price','Action'])
         net_worth_df = pd.DataFrame(trade.net_worth_Log, columns=['Net worth'])
         combined_df = trades_df.copy()
         combined_df['Net worth'] = net_worth_df
         combined_df.to_csv(f'combined_log{epoch}.csv', index=False)
+
         total_reward = 0
         epoch+=1

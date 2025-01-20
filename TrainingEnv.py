@@ -83,13 +83,14 @@ class TrainingEnv():
         
     def Enter_long(self,current_price):
         if self.position == 0:
+            trade_cost = self.balance*self.position_rate
             # 거래 수수료 계산 (자산*포지션 진입 비율) * 거래 수수료율
-            trade_cost = (self.balance*self.position_rate) * self.fee_rate
+            trade_fee = trade_cost * self.fee_rate
             # 현재 자산 > 거래 수수료 : 포지션 진입 가능
-            if self.balance > trade_cost:
+            if self.balance > trade_fee + trade_cost:
                 # 현재 자산 - (현재 자산*포지션 진입 비율) - 거래수수료
-                self.position = (self.balance*self.position_rate)/current_price
-                self.balance -= self.balance*self.position_rate - trade_cost
+                self.position = trade_cost/current_price # 비트코인 long 수량
+                self.balance -= (trade_cost + trade_fee)
                 self.trades.append((self.current_step, current_price ,'LONG'))            
                 
     def Exit_long(self, current_price):
@@ -103,22 +104,26 @@ class TrainingEnv():
             
     def Enter_short(self, current_price):
         if self.position == 0:
+            trade_cost = self.balance*self.position_rate
             # 거래 수수료 계산 (자산*포지션 진입 비율) * 거래 수수료율
-            trade_cost = (self.balance*self.position_rate) * self.fee_rate
+            trade_fee = trade_cost * self.fee_rate
             # 현재 자산 > 거래 수수료 : 포지션 진입 가능
-            if self.balance > trade_cost:
+            if self.balance > trade_fee + trade_cost:
                 # 현재 자산 - (현재 자산*포지션 진입 비율) - 거래수수료
-                self.position = -(self.balance*self.position_rate)/current_price
-                self.balance -= self.balance*self.position_rate - trade_cost
+                self.position = -trade_cost/current_price # 비트코인 short 수량
+                self.balance -= (trade_cost + trade_fee)
                 self.entry_price = current_price
                 self.trades.append((self.current_step, current_price,'SHORT'))
                 
     def Exit_short(self, current_price):
         if self.position < 0:
+            # 수익 = 진입가격*수량 + (진입가 - 현재가) .... 진입가 < 현재가
+            entry_value = self.entry_price*abs(self.position)
             trade_value = abs(self.position) * current_price
+            trade_profit = entry_value + (entry_value-trade_value)
             # 수수료 계산
             trade_cost = trade_value * self.fee_rate
-            self.balance += (trade_value - trade_cost)
+            self.balance += (trade_profit - trade_cost)
             self.position = 0
             self.entry_price = 0
             self.trades.append((self.current_step, current_price,'EXIT SHORT'))
@@ -142,11 +147,14 @@ class TrainingEnv():
         # 롱 포지션 정리
         elif action == -2:
             self.Exit_short(current_price)
-        
+            
+        # 수익 = 진입가격*수량 + (진입가 - 현재가) .... 
         if self.position < 0:
-            profit = self.position*current_price-((self.position*self.entry_price)-(self.position*current_price))
-        elif self.position >= 0:
+            profit = (self.position*self.entry_price) + (self.position*self.entry_price - self.position*current_price)
+        elif self.position > 0:
             profit = self.position*current_price
+        else:
+            profit = 0
             
         # 자산 업데이트
         self.net_worth = self.balance + profit

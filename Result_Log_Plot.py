@@ -6,8 +6,8 @@ print("log File open")
 csv_data = pd.read_csv('BTCUSDT20250115.csv')
 print("API File open")
 
-fig, axs = plt.subplots(2, figsize=(14,14))
-axs[0].plot(csv_data.iloc[0:1590000+1]['Close'], label='Close Price')
+fig, axs = plt.subplots(2, figsize=(40,20))
+axs[0].plot(csv_data.iloc[0:1590000+1]['Close'], label='Close Price', color = "Grey", linewidth=0.2)
 # 거래 기록 플롯 
 print("plot axs[0]")
 
@@ -16,7 +16,7 @@ colors = ['green', 'red', 'blue', 'purple']
 markers = ['^', 'v', 'o', 'x'] 
 for action, color, marker in zip(actions, colors, markers): 
     subset = data[data['Action'] == action] 
-    axs[0].scatter(subset['Step'], subset['Price'], color=color, marker=marker, label=action)
+    axs[0].scatter(subset['Step'], subset['Price'], color=color, marker=marker, label=action ,s = 10)
 """
 for index in range(len(data)):         
     print(index)
@@ -30,7 +30,7 @@ for index in range(len(data)):
         axs[0].scatter(data.iloc[index]['Step'], data.iloc[index]['Price'], color='purple', marker='x', label='EXIT SHORT' if index == 0 else "") 
 """
 print("scatter done!")
-
+axs[0].legend()
 axs[0].set_xlabel('Step') 
 axs[0].set_ylabel('Price') 
 axs[0].set_title('Bitcoin Trading Actions') 

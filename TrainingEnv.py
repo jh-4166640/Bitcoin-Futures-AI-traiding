@@ -4,8 +4,6 @@ import random
 import sys
 import time
 
-
-
 class TrainingEnv():
     def __init__(self, data, inital_balance=1000, fee_rate=0.001, position_rate = 0.4):
         # data road
